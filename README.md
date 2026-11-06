@@ -46,10 +46,8 @@ The project explores multiple deep learning architectures for handwritten charac
 **Models included in the project:**
 
 - LeNet-5
-- AlexNet
-- VGGNet
-- ResNet
-- SpinalNet
+  
+  
 
 **Primary model development:**
 - LeNet-based character recognition.
