@@ -8,3 +8,5 @@ __pycache__/
 .streamlit/secrets.toml
 *.log
 datasets/
+handwriting_test.png
+math_test.png

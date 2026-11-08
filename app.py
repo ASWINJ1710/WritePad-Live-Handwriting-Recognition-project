@@ -1,6 +1,8 @@
-﻿import streamlit as st
+﻿
+import streamlit as st
 import numpy as np
 import hashlib
+from PIL import Image
 
 from streamlit_drawable_canvas import st_canvas
 
@@ -13,7 +15,6 @@ st.set_page_config(
     page_icon="✍️",
     layout="wide"
 )
-
 
 # SESSION STATE
 if "canvas_key" not in st.session_state:
@@ -31,12 +32,23 @@ if "editable_text" not in st.session_state:
 
 # HEADER
 st.title("✍️ AI Handwriting Recognition")
+
 st.write(
     "Write letters, numbers, symbols and equations. "
     "Your recognized digital output appears on the right."
 )
 
 st.divider()
+
+
+# RECOGNITION MODE
+recognition_mode = st.selectbox(
+    "Choose Recognition Mode",
+    ["Text", "Math"],
+    help="Text mode recognizes handwriting. Math mode recognizes mathematical expressions."
+)
+
+mode = recognition_mode.lower()
 
 
 # TWO-PANEL LAYOUT
@@ -67,7 +79,19 @@ image_array = canvas_result.image_data
 has_drawing = False
 
 if image_array is not None:
-    has_drawing = np.any(image_array[:, :, :3] < 245)
+
+    has_drawing = np.any(
+        image_array[:, :, :3] < 245
+    )
+
+    # SAVE ORIGINAL HANDWRITING IMAGE FOR DEBUGGING
+    if has_drawing:
+
+        debug_image = Image.fromarray(
+            image_array.astype(np.uint8)
+        )
+
+        debug_image.save("handwriting_test.png")
 
 
 # AUTOMATIC RECOGNITION
@@ -77,13 +101,15 @@ if has_drawing:
         image_array
     ).tobytes()
 
+    # Include mode so switching modes triggers recognition
     current_hash = hashlib.md5(
-        image_bytes
+        image_bytes + mode.encode()
     ).hexdigest()
 
     if current_hash != st.session_state.last_processed:
 
         try:
+
             with st.spinner("🤖 Recognizing handwriting..."):
 
                 processed_image = preprocess_canvas(
@@ -91,7 +117,8 @@ if has_drawing:
                 )
 
                 results = recognize_mixed_content(
-                    processed_image
+                    processed_image,
+                    mode=mode
                 )
 
                 st.session_state.results = results
@@ -99,6 +126,7 @@ if has_drawing:
                 recognized_text = []
 
                 for result in results:
+
                     recognized_text.append(
                         result["prediction"]
                     )
@@ -130,8 +158,13 @@ with right:
             )
 
             if result["type"] == "math":
-                st.latex(result["prediction"])
+
+                st.latex(
+                    result["prediction"]
+                )
+
             else:
+
                 st.markdown(
                     f"**{result['prediction']}**"
                 )
@@ -150,7 +183,20 @@ with right:
 
         st.info(
             "Start writing in the canvas. "
-            "Your recognized digital text will appear here."
+            "Your recognized digital output will appear here."
+        )
+
+
+# DEBUG INFORMATION
+with st.expander("🔍 Debug Information"):
+
+    st.write("Recognition mode:", mode)
+    st.write("Canvas image available:", image_array is not None)
+    st.write("Drawing detected:", has_drawing)
+
+    if has_drawing:
+        st.success(
+            "Original handwriting saved as handwriting_test.png"
         )
 
 
