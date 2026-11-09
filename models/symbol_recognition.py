@@ -1,3 +1,4 @@
+
 import torch
 import torch.nn.functional as F
 import streamlit as st
@@ -34,9 +35,7 @@ def load_symbol_model():
         num_classes=checkpoint["num_classes"]
     )
 
-    model.load_state_dict(
-        checkpoint["model_state_dict"]
-    )
+    model.load_state_dict(checkpoint["model_state_dict"])
 
     model.to(DEVICE)
     model.eval()
@@ -51,13 +50,42 @@ def preprocess_symbol(image):
 
     image = image.convert("L")
 
+    # Detect foreground pixels.
+    image_array = np.array(image)
+
+    foreground = image_array < 245
+
+    if not foreground.any():
+        return torch.zeros(1, 1, 32, 32)
+
+    # Crop unnecessary white margins.
+    ys, xs = np.where(foreground)
+
+    image = image.crop((
+        max(0, xs.min()),
+        max(0, ys.min()),
+        min(image.width, xs.max() + 1),
+        min(image.height, ys.max() + 1)
+    ))
+
+    # Preserve aspect ratio.
+    image.thumbnail((24, 24), Image.Resampling.LANCZOS)
+
+    # Create white 32x32 canvas.
+    canvas = Image.new("L", (32, 32), 255)
+
+    # Centre the symbol.
+    x = (32 - image.width) // 2
+    y = (32 - image.height) // 2
+
+    canvas.paste(image, (x, y))
+
     transform = transforms.Compose([
-        transforms.Resize((32, 32)),
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,))
     ])
 
-    tensor = transform(image)
+    tensor = transform(canvas)
 
     return tensor.unsqueeze(0)
 

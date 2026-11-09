@@ -43,6 +43,7 @@ def preprocess_character(image):
     image = image.convert("L")
     image_array = np.array(image)
 
+    # Convert black handwriting into white foreground
     _, binary = cv2.threshold(
         image_array,
         245,
@@ -55,13 +56,15 @@ def preprocess_character(image):
     if points is None:
         return None
 
+    # Crop character
     x, y, w, h = cv2.boundingRect(points)
     character = binary[y:y + h, x:x + w]
 
-    scale = min(20 / w, 20 / h)
+    # Match approximate character dimensions in training images
+    scale = min(11 / w, 14 / h)
 
-    new_w = max(1, int(w * scale))
-    new_h = max(1, int(h * scale))
+    new_w = max(1, int(round(w * scale)))
+    new_h = max(1, int(round(h * scale)))
 
     character = cv2.resize(
         character,
@@ -69,8 +72,10 @@ def preprocess_character(image):
         interpolation=cv2.INTER_AREA
     )
 
+    # Create 28x28 canvas
     canvas = np.zeros((28, 28), dtype=np.uint8)
 
+    # Center character
     x_offset = (28 - new_w) // 2
     y_offset = (28 - new_h) // 2
 
@@ -79,8 +84,10 @@ def preprocess_character(image):
         x_offset:x_offset + new_w
     ] = character
 
+    # White background, black character
     canvas = 255 - canvas
 
+    # Convert to normalized tensor
     tensor = torch.from_numpy(canvas).float() / 255.0
     tensor = (tensor - 0.5) / 0.5
 
@@ -113,4 +120,4 @@ def predict_character(image):
     return {
         "character": class_names[index],
         "confidence": round(confidence.item() * 100, 2)
-    }
+}

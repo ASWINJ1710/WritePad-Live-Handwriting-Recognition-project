@@ -44,10 +44,13 @@ st.divider()
 # RECOGNITION MODE
 recognition_mode = st.selectbox(
     "Choose Recognition Mode",
-    ["Text", "Math"],
-    help="Text mode recognizes handwriting. Math mode recognizes mathematical expressions."
+    ["Text", "Math", "Combined"],
+    help=(
+        "Text: Handwriting recognition. "
+        "Math: Mathematical expression recognition. "
+        "Combined: Letters, numbers and mathematical symbols."
+    )
 )
-
 mode = recognition_mode.lower()
 
 
